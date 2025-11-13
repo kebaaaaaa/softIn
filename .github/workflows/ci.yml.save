@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Unit & Load Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest locust httpx
+
+      - name: Run unit tests
+        run: pytest -v
+
+      - name: Run short load test with Locust
+        run: |
+          # Стартираме server в background
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          SERVER_PID=$!
+          sleep 2
+          # Пускаме кратък load тест
+          locust --headless -u 10 -r 5 -t 30s -H http://localhost:8000
+          # Спираме server-а
+          kill $SERVER_PID
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t filestorage:latest .
+          docker tag filestorage:latest ghcr.io/${{ github.repository }}:latest
+          docker tag filestorage:latest ghcr.io/${{ github.repository }}:${{ github.sha }}
+
