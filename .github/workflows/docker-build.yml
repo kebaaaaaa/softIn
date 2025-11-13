@@ -26,8 +26,9 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t filestorage:latest .
-          docker tag filestorage:latest ghcr.io/${{ github.repository }}:latest
-          docker tag filestorage:latest ghcr.io/${{ github.repository }}:${{ github.sha }}
+          docker tag filestorage:latest ghcr.io/${{ github.repository_owner }}/softin:latest
+          docker tag filestorage:latest ghcr.io/${{ github.repository_owner }}/softin:${{ github.sha }}
+
 
       - name: Push Docker image
         run: |
